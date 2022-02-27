@@ -12,33 +12,33 @@ offe	equ		16					; rs.w	1	;ptr modulation volume (.W au lieu de .L)				2
 off12	equ		18					; rs.l	1	;ptr base modulation fr‚quence							4
 off30	equ		22					; rs.w	1	;ptr modulation fr‚quence (.W au lieu de .L)			2
 
-off38	equ		24					; rs.l	1	;incr‚ment pour crescendo					2
+off38	equ		24					; rs.l	1	;incr‚ment pour crescendo					4
 
-off8	equ		26					; rs.b	1	;											1
-off9	equ		27					; rs.b	1	;											1
+off8	equ		28					; rs.b	1	;											1
+off9	equ		29					; rs.b	1	;											1
 
-off16	equ		28					; rs.b	1	;											1
-off17	equ		29					; rs.b	1	;											1
-off18	equ		30					; rs.b	1	;											1
-off19	equ		31					; rs.b	1	;											1
-off1a	equ		32					; rs.b	1	;											1
-off1b	equ		33					; rs.b	1	;											1
-off1c	equ		34					; rs.b	1	;											1
-off1d	equ		35					; rs.b	1	;											1
-off1e	equ		36					; rs.b	1	;											1
-off1f	equ		37					; rs.b	1	;											1
-off21	equ		38					; rs.b	1	;											1
+off16	equ		30					; rs.b	1	;											1
+off17	equ		31					; rs.b	1	;											1
+off18	equ		32					; rs.b	1	;											1
+off19	equ		33					; rs.b	1	;											1
+off1a	equ		34					; rs.b	1	;											1
+off1b	equ		35					; rs.b	1	;											1
+off1c	equ		36					; rs.b	1	;											1
+off1d	equ		37					; rs.b	1	;											1
+off1e	equ		38					; rs.b	1	;											1
+off1f	equ		39					; rs.b	1	;											1
+off21	equ		40					; rs.b	1	;											1
 
-off26	equ		39					; rs.b	1	;											1
-off27	equ		40					; rs.b	1	;											1
-off28	equ		41					; rs.b	1	;15-volume sonore de la voix				1
-off2a	equ		42					; rs.b	1	;0,1 ou 2=type de son						1
-off2b	equ		43					; rs.b	1	;											1
-off2c	equ		44					; rs.b	1	;											1
-off2d	equ		45					; rs.b	1	;volume sonore calculé						1
-off2e	equ		46					; rs.b	1	;											1
+off26	equ		41					; rs.b	1	;											1
+off27	equ		42					; rs.b	1	;											1
+off28	equ		43					; rs.b	1	;15-volume sonore de la voix				1
+off2a	equ		44					; rs.b	1	;0,1 ou 2=type de son						1
+off2b	equ		45					; rs.b	1	;											1
+off2c	equ		46					; rs.b	1	;											1
+off2d	equ		47					; rs.b	1	;volume sonore calculé						1
+off2e	equ		48					; rs.b	1	;											1
 ;off3c	equ		47
-off3c	equ		48
+off3c	equ		49
 
 .opt "~Oall"
 
@@ -51,12 +51,37 @@ off3c	equ		48
 	lea		MUSIC,a0
 	bsr		INITMUSIC
 
+	moveq	#0,d0
+	moveq	#0,d1
+	moveq	#0,d2
+	moveq	#0,d3
+	moveq	#0,d4
+	moveq	#0,d5
+	moveq	#0,d6
+	moveq	#0,d7
+	move.l	d0,a0
+	move.l	d0,a1
+	move.l	d0,a2
+	move.l	d0,a3
+	move.l	d0,a4
+	move.l	d0,a5
+	move.l	d0,a6
+
+
+	bsr		PLAYMUSIC
+	lea		PSGREG,A0		
+
+	bsr		PLAYMUSIC
+	lea		PSGREG,A0		
+
+	bsr		PLAYMUSIC
+	lea		PSGREG,A0		
 
 
 coso_envoi_registres:
 	MOVEM.L			A0-A1,-(A7)
 	LEA.L			PSGREG+2,A0											; = c177be
-	MOVE.L	 		registres_virtuels_YM_c04f4c(PC),A1
+	lea		 		registres_virtuels_YM_c04f4c(PC),A1
 	MOVE.B			(A0),(A1)+
 	MOVE.B			4(A0),(A1)+
 	MOVE.B			8(A0),(A1)+
@@ -162,11 +187,13 @@ TRK:
 	
 ; calcule nouvelle note
 ;
-L25C:	SUBQ.B	#1,off26(A0)
+L25C:
+	SUBQ.B	#1,off26(A0)
 	BPL.S	L25A
 	MOVE.B	off27(A0),off26(A0)
 	MOVE.L	off22(A0),A1
-L26C:	MOVE.B	(A1)+,D0
+L26C:
+	MOVE.B	(A1)+,D0
 	CMP.B	#$FD,D0
 	BLO		L308
 	EXT	D0
@@ -364,7 +391,7 @@ E2:
 	bra.s	L3B6
 
 E9:
-	jmp		coso_escape_DIGIT1								; =C0364E
+	jmp		coso_escape_ENV1								; =C0364E
 
 
 	;IFEQ	DIGIT
@@ -383,7 +410,7 @@ E9:
 	;ENDC
 
 
-coso_back_from_coso_escape_DIGIT1:
+coso_back_from_coso_escape_ENV1:
 	addq	#2,d6
 	bra.S	L3B6
 E7:
@@ -726,14 +753,14 @@ coso_novol:
 	;RTS
 	;ENDC
 
-coso_escape_DIGIT1:
+coso_escape_ENV1:
 	PEA			(A0)										; 00C0364E 4850                     PEA.L (A0)
 	MOVE.L	 	registres_virtuels_YM_c04f4c(PC),A0			; 00C03650 207a 18fa                MOVEA.L (PC,$18fa) == $00c04f4c [00c0663e],A0
 	MOVE.B 		(A1)+,$0B(A0)								; 00C03654 1159 000b                MOVE.B (A1)+ [fd],(A0,$000b) == $00c051c9 [30]
 	MOVE.B 		#$00,$0C(A0)								; 00C03658 117c 0000 000c           MOVE.B #$00,(A0,$000c) == $00c051ca [3c]
 	MOVE.B 		#$0a,$0D(A0)								; 00C0365E 117c 000a 000d           MOVE.B #$0a,(A0,$000d) == $00c051cb [ac]
 	MOVE.L 		(A7)+,A0									; 00C03664 205f                     MOVEA.L (A7)+ [00c0013e],A0
-	JMP 		coso_back_from_coso_escape_DIGIT1			; 00C03666 4ef9 00c1 73f4           JMP $00c173f4
+	JMP 		coso_back_from_coso_escape_ENV1			; 00C03666 4ef9 00c1 73f4           JMP $00c173f4
 
 ;coso_escape_DIGIT2:
 ;	MOVEM.L D0-D7/A0-A6,-(A7)							; 00C0360E 48e7 fffe                MOVEM.L D0-D7/A0-A6,-(A7)
@@ -943,7 +970,8 @@ MODIF2:
 	;.data
 
 L7C6:	DC.B	1,0,0,0,0,0,0,$E1
-
+	even
+	
 PSGREG:	DC.W	0,0,$101,0
 	DC.W	$202,0,$303,0
 	DC.W	$404,0,$505,0
@@ -951,7 +979,8 @@ PSGREG:	DC.W	0,0,$101,0
 	DC.W	$808
 	DC.W	0,$909,0
 	DC.W	$A0A,0
-
+	even
+	
 L94E:	DC.W	$EEE,$E17,$D4D,$C8E
 	DC.W	$BD9,$B2F,$A8E,$9F7
 	DC.W	$967,$8E0,$861,$7E8
@@ -1012,8 +1041,9 @@ BOUCLE:	DC.B	0
 
 MUSIC:
 ;	INCBIN	TUR4.PAK
-	INCBIN	"C:/Jaguar/COSO/fichiers mus/COSO/lands1.mus"
+	INCBIN	"C:/Jaguar/COSO/fichiers mus/COSO/airball.mus"
+	even
 	
 registres_virtuels_YM_c04f4c:
-	ds.b				11
+	ds.b				11+3
 	even
