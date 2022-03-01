@@ -1,6 +1,9 @@
 ; YM coso replay for Jaguar
 ; ne garder que YM de base + digidrums
 
+; remis a zero avant chaque replay ?
+; comparer entre ce qui est récupéré et buffer_trace_coso
+
 ; COSO : nb de registres utilisés = 14 : 0,1,2,3,4,5,6,7,8,9,10,11,12,13
 
 ;
@@ -80,7 +83,7 @@ display_infos_during_replay			.equ		1
 display_infos_debug					.equ		0
 
 	
-DSP_Audio_frequence					.equ			26000				; real hardware needs lower sample frequencies than emulators !
+DSP_Audio_frequence					.equ			36000				; real hardware needs lower sample frequencies than emulators !
 YM_frequence_YM2149					.equ			2000000				; 2 000 000 = Atari ST , 1 000 000 Hz = Amstrad CPC, 1 773 400 Hz = ZX spectrum 
 YM_DSP_frequence_MFP				.equ			2457600
 YM_DSP_precision_virgule_digidrums	.equ			11
@@ -356,12 +359,23 @@ okprintms:
 
 	
 toto:
+;vsync
+;	move.l		vbl_counter,d0
+;vsync_toto:
+;	move.l		vbl_counter,d1
+;	cmp.l		d0,d1
+;	beq.s		vsync_toto
+	
+
 	move.l		DSP_flag_registres_YM_lus,d0
 	cmp.l		#0,d0
 	beq.s		toto
 	move.l		#0,DSP_flag_registres_YM_lus
 	
 	bsr		PLAYMUSIC
+	;bsr			copie_registres_musique
+
+
 
 
 	;move.l		PSG_compteur_frames_restantes,d0
@@ -596,6 +610,23 @@ VBL:
 .exit:
                 movem.l (a7)+,d0-d7/a0-a6
                 rte
+
+
+copie_registres_musique:
+		move.l		pointeur_buffer_trace_coso,a0
+		lea			YM_registres_Coso,a1
+		moveq		#14-1,d0
+boucle_copie_registres_musique:
+		move.b		(a0)+,(a1)+
+		dbf			d0,boucle_copie_registres_musique
+
+		lea			fin_buffer_trace_coso,a1
+		cmp.l		a1,a0
+		bne.s		ok_pas_fin_fin_buffer_trace_coso
+		lea			buffer_trace_coso,a0
+ok_pas_fin_fin_buffer_trace_coso:
+		move.l		a0,pointeur_buffer_trace_coso
+		rts
 
 ; ---------------------------------------
 ; imprime une chaine terminée par un zéro
@@ -1669,31 +1700,34 @@ off2c	equ		46					; rs.b	1	;											1
 off2d	equ		47					; rs.b	1	;volume sonore calculé						1
 off2e	equ		48					; rs.b	1	;											1
 ;off3c	equ		47
-off3c	equ		49
+off3c	equ		50
 
 coso_envoi_registres:
 	MOVEM.L			A0-A1,-(A7)
 	LEA.L			PSGREG+2,A0											; = c177be
 	lea		 		YM_registres_Coso,A1
-	MOVE.B			(A0),(A1)+
-	MOVE.B			4(A0),(A1)+
-	MOVE.B			8(A0),(A1)+
-	MOVE.B			12(A0),(A1)+
-	MOVE.B			16(A0),(A1)+
-	MOVE.B			20(A0),(A1)+
-	MOVE.B			24(A0),(A1)+
-	MOVE.B			28(A0),(A1)+
-	MOVE.B			32(A0),(A1)+
-	MOVE.B			36(A0),(A1)+
+	MOVE.B			(A0),(A1)+					; 0
+	MOVE.B			4(A0),(A1)+					; 1
+	MOVE.B			8(A0),(A1)+					; 2 
+	MOVE.B			12(A0),(A1)+				; 3
+	MOVE.B			16(A0),(A1)+				; 4
+	MOVE.B			20(A0),(A1)+				; 5
+	MOVE.B			24(A0),(A1)+				; 6
+	MOVE.B			28(A0),(A1)+				; 7
+	MOVE.B			32(A0),(A1)+				; 8
+	MOVE.B			36(A0),(A1)+				; 9
+	MOVE.B			40(A0),(A1)+				; A
 
-	TST.B 			flagdigit
-	BEQ.B 			coso_envoi_registres_ret2
+; env fait dans coso_escape_ENV1
+
+	;TST.B 			flagdigit
+	;BEQ.B 			coso_envoi_registres_ret2
 ; pas de gestion des digits
 	;MOVE.B 			#$0f,(A6,$002a) == $00c177e6 [00]
 	;BT .B			coso_envoi_registres_ret1
-coso_envoi_registres_ret2:
-	MOVE.B 			40(A0),(A1)+
-coso_envoi_registres_ret1:
+;coso_envoi_registres_ret2:
+	;MOVE.B 			40(A0),(A1)+
+;coso_envoi_registres_ret1:
 	MOVEM.L 		(A7)+,A0-A1
 	RTS
 
@@ -2348,7 +2382,7 @@ coso_novol:
 
 coso_escape_ENV1:
 	PEA			(A0)										; 00C0364E 4850                     PEA.L (A0)
-	MOVE.L	 	YM_registres_Coso,A0			; 00C03650 207a 18fa                MOVEA.L (PC,$18fa) == $00c04f4c [00c0663e],A0
+	lea		 	YM_registres_Coso,A0			; 00C03650 207a 18fa                MOVEA.L (PC,$18fa) == $00c04f4c [00c0663e],A0
 	MOVE.B 		(A1)+,$0B(A0)								; 00C03654 1159 000b                MOVE.B (A1)+ [fd],(A0,$000b) == $00c051c9 [30]
 	MOVE.B 		#$00,$0C(A0)								; 00C03658 117c 0000 000c           MOVE.B #$00,(A0,$000c) == $00c051ca [3c]
 	MOVE.B 		#$0a,$0D(A0)								; 00C0365E 117c 000a 000d           MOVE.B #$0a,(A0,$000d) == $00c051cb [ac]
@@ -4248,7 +4282,15 @@ YM_table_frequences_Sinus_Sid_Amiga:		dc.w	566, 283, 141, 141
 
 
 fichier_coso_depacked:
-		INCBIN		"ancool.MUS"
+		;INCBIN		"airball.MUS"			; OK
+		.incbin		"C:\\Jaguar\\COSO\\fichiers mus\\COSO\\REPLI1.MUS"
+		;.incbin		"C:\\Jaguar\\COSO\\fichiers mus\\NEW\\ENS6.MUS"
+		even
+	
+pointeur_buffer_trace_coso:		dc.l		buffer_trace_coso
+buffer_trace_coso:
+		incbin		"c:\jaguar\coso\dump_ST_registres_coso_airball.BIN"
+fin_buffer_trace_coso:
 		even
 
 
